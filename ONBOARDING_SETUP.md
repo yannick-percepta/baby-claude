@@ -17,25 +17,24 @@ python setup_environment.py
 ```
 This creates a cloud environment where the swarm runs. The ID is saved to `.environment_id`.
 
-### 2. Create the Onboarding Lead coordinator
+### 2. Wait for all specialist agents to be created
+Your team members are creating the four specialist agents:
+- Recruiter
+- IT Provisioning
+- Onboarding Buddy Match
+- Welcome Packet
+
+Once all specialists are created, their agent IDs will be saved to `.onboarding_specialist_ids.json` 
+by `create_onboarding_specialists.py`.
+
+### 3. Create the Onboarding Lead coordinator
 ```bash
 python create_onboarding_coordinator.py
 ```
 This creates the coordinator agent and saves its ID to `.onboarding_coordinator_id`.
+It automatically reads the specialist agent IDs from `.onboarding_specialist_ids.json`.
 
-**Important:** The script uses placeholder specialist agent IDs in `.onboarding_specialist_ids.json`. 
-Once your team members complete the specialist agents, update the IDs in that file:
-
-```json
-{
-  "recruiter": "ag-REAL-RECRUITER-ID",
-  "it_provisioning": "ag-REAL-IT-ID",
-  "buddy_match": "ag-REAL-BUDDY-ID",
-  "welcome_packet": "ag-REAL-WELCOME-ID"
-}
-```
-
-### 3. Run the onboarding swarm
+### 4. Run the onboarding swarm
 ```bash
 python run_onboarding.py
 ```
@@ -78,31 +77,20 @@ The coordinator produces a Word document containing:
 
 ## Testing
 
-To test with the sample new-hire profile:
+Once all specialists are created and `.onboarding_specialist_ids.json` is populated:
+
 ```bash
-python setup_environment.py
+python setup_environment.py    # One time only
 python create_onboarding_coordinator.py
 python run_onboarding.py
 ```
 
 Check `outputs/` for the final Word document and transcript.
 
-## Updating Specialist IDs
+## Coordinator Recreation
 
-When your team members provide real specialist agent IDs, update `.onboarding_specialist_ids.json`:
-
-```bash
-cat > .onboarding_specialist_ids.json << EOF
-{
-  "recruiter": "ag-xxx-recruiter",
-  "it_provisioning": "ag-xxx-it-provisioning",
-  "buddy_match": "ag-xxx-buddy-match",
-  "welcome_packet": "ag-xxx-welcome-packet"
-}
-EOF
-```
-
-Then recreate the coordinator:
+If you need to recreate the coordinator with updated specialist IDs:
 ```bash
 python create_onboarding_coordinator.py
 ```
+It will read the latest specialist IDs from `.onboarding_specialist_ids.json`.

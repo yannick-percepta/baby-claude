@@ -70,19 +70,22 @@ fast because the start date is real and we want a great first-day experience.
 """
 
 
-# Placeholder specialist IDs — replace with real IDs from your team
-SPECIALIST_IDS = {
-    "recruiter": "ag-onboarding-recruiter",
-    "it_provisioning": "ag-onboarding-it-provisioning",
-    "buddy_match": "ag-onboarding-buddy-match",
-    "welcome_packet": "ag-onboarding-welcome-packet",
-}
+def load_specialist_ids() -> dict[str, str]:
+    ids_path = Path(".onboarding_specialist_ids.json")
+    if not ids_path.exists():
+        raise SystemExit(
+            "Missing .onboarding_specialist_ids.json. Run "
+            "create_onboarding_specialists.py first to create all specialists."
+        )
+    return json.loads(ids_path.read_text())
 
 
 def main() -> None:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise SystemExit("Set ANTHROPIC_API_KEY before running.")
+
+    specialist_ids = load_specialist_ids()
 
     client = Anthropic(
         api_key=api_key,
@@ -98,7 +101,7 @@ def main() -> None:
             "type": "coordinator",
             "agents": [
                 {"type": "agent", "id": agent_id}
-                for agent_id in SPECIALIST_IDS.values()
+                for agent_id in specialist_ids.values()
             ],
         },
         metadata={
@@ -110,11 +113,9 @@ def main() -> None:
     )
 
     Path(".onboarding_coordinator_id").write_text(coordinator.id)
-    Path(".onboarding_specialist_ids.json").write_text(json.dumps(SPECIALIST_IDS, indent=2))
 
     print(f"Coordinator created: {coordinator.id}")
-    print(f"Roster: {list(SPECIALIST_IDS.keys())}")
-    print(f"\nNote: Replace specialist IDs in .onboarding_specialist_ids.json with real agent IDs")
+    print(f"Roster: {list(specialist_ids.keys())}")
     print(f"Next: python run_onboarding.py")
 
 

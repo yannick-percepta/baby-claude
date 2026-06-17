@@ -1,0 +1,56 @@
+{
+  "team": "Design Systems",
+  "team_mission": "Own Meridian's shared component library (Loom), the design-token pipeline, and the company-wide accessibility standard.",
+  "manager": {
+    "name": "Priya Raman",
+    "role": "Design Systems Lead",
+    "pronouns": "she/her",
+    "location": "Seattle, WA (PT)",
+    "ask_me_about": "How Loom started as a side project and became company-wide; she also runs ultramarathons.",
+    "note": "Maya's direct manager."
+  },
+  "teammates": [
+    {
+      "name": "Diego Fuentes",
+      "role": "Staff Design Engineer",
+      "pronouns": "he/him",
+      "location": "Austin, TX (CT)",
+      "ask_me_about": "The Loom v3 theming engine and the token pipeline. Also a serious home baker — sourdough and pizza.",
+      "note": "Also Austin-based; likely a natural in-person coffee for Maya."
+    },
+    {
+      "name": "Hana Kim",
+      "role": "Senior Product Designer",
+      "pronouns": "she/her",
+      "location": "Remote — Denver, CO (MT)",
+      "ask_me_about": "Accessibility patterns and the WCAG 2.2 push; she leads the #a11y working group.",
+      "note": "Closest peer to Maya's accessibility background."
+    },
+    {
+      "name": "Tom Becker",
+      "role": "Product Designer",
+      "pronouns": "he/him",
+      "location": "Remote — Chicago, IL (CT)",
+      "ask_me_about": "Onboarding tips for fully-remote life at Meridian; he joined remote last year.",
+      "note": "Will be Maya's onboarding buddy candidate (buddy is confirmed by a separate specialist)."
+    }
+  ],
+  "cross_functional_partners": [
+    {
+      "name": "Sasha Patel",
+      "role": "Engineering Manager, Platform UI",
+      "pronouns": "they/them",
+      "location": "Remote — Toronto, ON (ET)",
+      "ask_me_about": "How Design and Engineering ship Loom together; the handoff workflow.",
+      "note": "Maya will partner closely with Sasha's team."
+    },
+    {
+      "name": "Marcus Lin",
+      "role": "Senior PM, Design Systems",
+      "pronouns": "he/him",
+      "location": "San Francisco, CA (PT)",
+      "ask_me_about": "The Loom v3 roadmap and how the team prioritizes.",
+      "note": "Owns the roadmap for Maya's area."
+    }
+  ]
+}

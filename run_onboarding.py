@@ -96,9 +96,9 @@ def main() -> None:
                 name = getattr(event, "agent_name", "?")
                 print(f"  [thread running]   {name}", flush=True)
             elif t == "agent.thread_message_received":
-                print(f"  [reply ←]          {event.from_agent_name}", flush=True)
+                print(f"  [reply]            {event.from_agent_name}", flush=True)
             elif t == "agent.thread_message_sent":
-                print(f"  [delegate →]       {event.to_agent_name}", flush=True)
+                print(f"  [delegate]         {event.to_agent_name}", flush=True)
             elif t == "agent.message":
                 for block in event.content:
                     if getattr(block, "type", None) == "text":

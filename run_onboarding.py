@@ -17,6 +17,7 @@ Usage:
 """
 
 import os
+import sys
 from pathlib import Path
 
 from anthropic import Anthropic
@@ -27,6 +28,10 @@ from swarm_events import (
     load_profile,
     stream_onboarding_events,
 )
+
+# Force UTF-8 output encoding on Windows so the event stream prints cleanly.
+if sys.stdout.encoding != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 def main() -> None:

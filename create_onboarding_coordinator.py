@@ -52,8 +52,9 @@ You can call these specialists:
    - Welcome materials (personalized team intro, org overview, logistics)
    - Risks and mitigation (if any blockers exist)
 
-4. Produce the final document as a Word document using the docx skill.
-   The deliverable is the docx itself, not a chat message.
+4. Produce the final document as a Word document. Use python-docx (already
+   installed in your environment) to build a properly formatted .docx file.
+   Save it to the outputs/ directory. The deliverable is the .docx file.
 
 # How to talk to specialists
 

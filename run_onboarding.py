@@ -12,9 +12,15 @@ Usage:
 """
 
 import os
+import sys
+import time
 from pathlib import Path
 
 from anthropic import Anthropic
+
+# Force UTF-8 output encoding on Windows
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 
 PROFILE_PATH = Path("synthetic-data/new-hire-profile.md")
@@ -78,42 +84,60 @@ def main() -> None:
     print("\n=== EVENT STREAM (this is the demo) ===\n")
     final_text_parts: list[str] = []
 
-    with client.beta.sessions.events.stream(session.id) as stream:
-        client.beta.sessions.events.send(
-            session.id,
-            events=[
-                {
-                    "type": "user.message",
-                    "content": [{"type": "text", "text": user_message}],
-                }
-            ],
-        )
-        for event in stream:
-            t = event.type
-            if t == "session.thread_created":
-                print(f"  [thread spawned]   {event.agent_name}", flush=True)
-            elif t == "session.thread_status_running":
-                name = getattr(event, "agent_name", "?")
-                print(f"  [thread running]   {name}", flush=True)
-            elif t == "agent.thread_message_received":
-                print(f"  [reply]            {event.from_agent_name}", flush=True)
-            elif t == "agent.thread_message_sent":
-                print(f"  [delegate]         {event.to_agent_name}", flush=True)
-            elif t == "agent.message":
-                for block in event.content:
-                    if getattr(block, "type", None) == "text":
-                        final_text_parts.append(block.text)
-                        print(block.text, end="", flush=True)
-            elif t == "agent.tool_use":
-                print(f"\n  [tool: {getattr(event, 'name', '?')}]", flush=True)
-            elif t == "session.status_idle":
-                print("\n\n[swarm finished]")
-                break
+    try:
+        with client.beta.sessions.events.stream(session.id) as stream:
+            client.beta.sessions.events.send(
+                session.id,
+                events=[
+                    {
+                        "type": "user.message",
+                        "content": [{"type": "text", "text": user_message}],
+                    }
+                ],
+            )
+            for event in stream:
+                t = event.type
+                if t == "session.thread_created":
+                    print(f"  [thread spawned]   {event.agent_name}", flush=True)
+                elif t == "session.thread_status_running":
+                    name = getattr(event, "agent_name", "?")
+                    print(f"  [thread running]   {name}", flush=True)
+                elif t == "agent.thread_message_received":
+                    print(f"  [reply]            {event.from_agent_name}", flush=True)
+                elif t == "agent.thread_message_sent":
+                    print(f"  [delegate]         {event.to_agent_name}", flush=True)
+                elif t == "agent.message":
+                    for block in event.content:
+                        if getattr(block, "type", None) == "text":
+                            final_text_parts.append(block.text)
+                            print(block.text, end="", flush=True)
+                elif t == "agent.tool_use":
+                    print(f"\n  [tool: {getattr(event, 'name', '?')}]", flush=True)
+                elif t == "session.status_idle":
+                    print("\n\n[swarm finished]")
+                    break
+    except Exception as e:
+        print(f"\n[stream interrupted: {type(e).__name__}]")
+        print("Waiting for coordinator to finish before downloading files...")
+
+    # If stream was interrupted, wait for coordinator to finish
+    if len(final_text_parts) == 0:
+        print("\nWaiting for coordinator to complete...")
+        for i in range(12):  # Wait up to 60 seconds
+            time.sleep(5)
+            try:
+                s = client.beta.sessions.retrieve(session.id)
+                if s.status == "idle":
+                    print(f"  Session completed after {(i+1)*5}s")
+                    break
+            except Exception:
+                pass
 
     OUTPUT_DIR.mkdir(exist_ok=True)
-    transcript_path = OUTPUT_DIR / "onboarding-transcript.txt"
-    transcript_path.write_text("".join(final_text_parts))
-    print(f"\nCoordinator transcript saved to {transcript_path}")
+    if final_text_parts:
+        transcript_path = OUTPUT_DIR / "onboarding-transcript.txt"
+        transcript_path.write_text("".join(final_text_parts))
+        print(f"\nCoordinator transcript saved to {transcript_path}")
 
     # Pull every file the agents produced in the container
     print("\nDownloading deliverables from the session container...")

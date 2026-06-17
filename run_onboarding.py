@@ -5,6 +5,11 @@ Loads the new-hire-profile.md and supporting files, creates a session with
 the Onboarding Lead coordinator, streams events as the swarm processes the
 hire in parallel, and produces the day-1 readiness pack as a Word document.
 
+The event loop is shared with the web visualisation via swarm_events.py; this
+runner prints the human-readable CLI view and every run also records a
+deterministic event log to outputs/onboarding-events.jsonl (used by the
+three.js replay mode in serve.py).
+
 Saves the transcript and all deliverables to outputs/.
 
 Usage:
@@ -13,25 +18,20 @@ Usage:
 
 import os
 import sys
-import time
 from pathlib import Path
 
 from anthropic import Anthropic
 
-# Force UTF-8 output encoding on Windows
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+from swarm_events import (
+    EVENTS_PATH,
+    OUTPUT_DIR,
+    load_profile,
+    stream_onboarding_events,
+)
 
-
-PROFILE_PATH = Path("synthetic-data/new-hire-profile.md")
-OUTPUT_DIR = Path("outputs")
-
-
-def load_profile() -> str:
-    if not PROFILE_PATH.exists():
-        raise SystemExit(f"Missing {PROFILE_PATH}")
-    print(f"  Loading {PROFILE_PATH.name}")
-    return PROFILE_PATH.read_text()
+# Force UTF-8 output encoding on Windows so the event stream prints cleanly.
+if sys.stdout.encoding != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 def main() -> None:
@@ -56,93 +56,55 @@ def main() -> None:
 
     print("Loading new-hire profile...")
     profile = load_profile()
+    print(f"  Loaded {len(profile)} chars")
 
     print(f"\nStarting session against coordinator {coordinator_id}...")
-    session = client.beta.sessions.create(
-        agent=coordinator_id,
-        environment_id=environment_id,
-        title="Onboarding — New Hire",
-    )
-    Path(".last_onboarding_session_id").write_text(session.id)
-
-    user_message = (
-        "A new hire is starting soon. Please run the standard onboarding process:\n"
-        "1. Read the new-hire profile yourself.\n"
-        "2. Delegate to all four specialists in parallel:\n"
-        "   - Recruiter: Confirm offer terms and references status\n"
-        "   - IT Provisioning: Generate laptop + accounts checklist\n"
-        "   - Buddy Match: Select and brief the buddy\n"
-        "   - Welcome Packet: Create personalized welcome materials\n"
-        "3. Synthesise their replies into a coherent day-1 readiness pack.\n"
-        "4. Produce the final pack as a Word document using the docx skill.\n\n"
-        "Move fast — the start date is real. We want them to have a great "
-        "first day.\n\n"
-        f"{profile}"
-    )
 
     # Stream the events — watch for parallel thread spawns.
     print("\n=== EVENT STREAM (this is the demo) ===\n")
     final_text_parts: list[str] = []
+    session_id: str | None = None
 
-    try:
-        with client.beta.sessions.events.stream(session.id) as stream:
-            client.beta.sessions.events.send(
-                session.id,
-                events=[
-                    {
-                        "type": "user.message",
-                        "content": [{"type": "text", "text": user_message}],
-                    }
-                ],
-            )
-            for event in stream:
-                t = event.type
-                if t == "session.thread_created":
-                    print(f"  [thread spawned]   {event.agent_name}", flush=True)
-                elif t == "session.thread_status_running":
-                    name = getattr(event, "agent_name", "?")
-                    print(f"  [thread running]   {name}", flush=True)
-                elif t == "agent.thread_message_received":
-                    print(f"  [reply]            {event.from_agent_name}", flush=True)
-                elif t == "agent.thread_message_sent":
-                    print(f"  [delegate]         {event.to_agent_name}", flush=True)
-                elif t == "agent.message":
-                    for block in event.content:
-                        if getattr(block, "type", None) == "text":
-                            final_text_parts.append(block.text)
-                            print(block.text, end="", flush=True)
-                elif t == "agent.tool_use":
-                    print(f"\n  [tool: {getattr(event, 'name', '?')}]", flush=True)
-                elif t == "session.status_idle":
-                    print("\n\n[swarm finished]")
-                    break
-    except Exception as e:
-        print(f"\n[stream interrupted: {type(e).__name__}]")
-        print("Waiting for coordinator to finish before downloading files...")
+    for ev in stream_onboarding_events(
+        client, coordinator_id, environment_id, profile,
+    ):
+        t = ev["type"]
+        if t == "start":
+            session_id = ev["session_id"]
+        elif t == "spawn":
+            print(f"  [thread spawned]   {ev['agent']}", flush=True)
+        elif t == "running":
+            print(f"  [thread running]   {ev['agent']}", flush=True)
+        elif t == "reply":
+            print(f"  [reply]            {ev['agent']}", flush=True)
+        elif t == "delegate":
+            print(f"  [delegate]         {ev['agent']}", flush=True)
+        elif t == "message":
+            final_text_parts.append(ev["text"])
+            print(ev["text"], end="", flush=True)
+        elif t == "tool":
+            print(f"\n  [tool: {ev['tool']}]", flush=True)
+        elif t == "idle":
+            session_id = ev.get("session_id", session_id)
+            print("\n\n[swarm finished]")
+        elif t == "error":
+            print(f"\n  [error] {ev['text']}", flush=True)
 
-    # If stream was interrupted, wait for coordinator to finish
-    if len(final_text_parts) == 0:
-        print("\nWaiting for coordinator to complete...")
-        for i in range(12):  # Wait up to 60 seconds
-            time.sleep(5)
-            try:
-                s = client.beta.sessions.retrieve(session.id)
-                if s.status == "idle":
-                    print(f"  Session completed after {(i+1)*5}s")
-                    break
-            except Exception:
-                pass
+    print(f"\nEvent log recorded to {EVENTS_PATH}")
 
     OUTPUT_DIR.mkdir(exist_ok=True)
-    if final_text_parts:
-        transcript_path = OUTPUT_DIR / "onboarding-transcript.txt"
-        transcript_path.write_text("".join(final_text_parts))
-        print(f"\nCoordinator transcript saved to {transcript_path}")
+    transcript_path = OUTPUT_DIR / "onboarding-transcript.txt"
+    transcript_path.write_text("".join(final_text_parts))
+    print(f"Coordinator transcript saved to {transcript_path}")
+
+    if session_id is None:
+        print("\nNo session id — skipping deliverable download.")
+        return
 
     # Pull every file the agents produced in the container
     print("\nDownloading deliverables from the session container...")
     files = client.beta.files.list(
-        scope_id=session.id,
+        scope_id=session_id,
         betas=["managed-agents-2026-04-01"],
     )
     file_count = 0
@@ -159,7 +121,7 @@ def main() -> None:
         print(f"\nDownloaded {file_count} file(s) to {OUTPUT_DIR}/")
 
     print(f"\nView the full session (including all sub-agent threads) at:")
-    print(f"  https://platform.claude.com/sessions/{session.id}")
+    print(f"  https://platform.claude.com/sessions/{session_id}")
 
 
 if __name__ == "__main__":

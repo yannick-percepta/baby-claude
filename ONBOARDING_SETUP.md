@@ -87,6 +87,19 @@ python run_onboarding.py
 
 Check `outputs/` for the final Word document and transcript.
 
+## Watch it in 3D — "The Reef" 🦈
+
+Every `run_onboarding.py` run also records `outputs/onboarding-events.jsonl`,
+which drives a live three.js visualization: a mama Claude shark directing baby
+Claude sharks to onboard a sea-lion new hire. No Node needed:
+
+```bash
+python serve.py        # -> http://localhost:8000  (Replay or Live mode)
+```
+
+No real run yet? `python make_sample_events.py` generates a sample recording so
+you can see it immediately. Full details in [`web/README.md`](./web/README.md).
+
 ## Coordinator Recreation
 
 If you need to recreate the coordinator with updated specialist IDs:

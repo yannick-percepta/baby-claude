@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Baby Claude — Hire-to-Onboard Swarm</title>
+    <!-- Build-free: resolve bare `three` imports to the locally vendored files
+         so `python serve.py` is the only thing needed to run the demo. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three.module.js",
+          "three/examples/jsm/": "/vendor/jsm/"
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+
+      <!-- Title card -->
+      <header id="titlecard">
+        <h1>Baby Claude</h1>
+        <p>Mama Claude &amp; the baby Claudes onboard a new hire — live from the swarm</p>
+      </header>
+
+      <!-- HUD: live event log + specialist status chips -->
+      <aside id="hud">
+        <div id="chips"></div>
+        <div id="log-wrap">
+          <div id="log-title">Event stream</div>
+          <ol id="log"></ol>
+        </div>
+      </aside>
+
+      <!-- Transport controls -->
+      <footer id="controls">
+        <div class="mode">
+          <button id="mode-replay" class="active">Replay</button>
+          <button id="mode-live">Live</button>
+        </div>
+        <div class="transport">
+          <button id="play">⏸</button>
+          <button id="restart">⟲</button>
+          <input id="seek" type="range" min="0" max="1000" value="0" />
+          <span id="clock">0.0s</span>
+          <select id="speed">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select>
+        </div>
+        <div id="status">loading…</div>
+      </footer>
+
+      <div id="loader"><div class="spinner"></div><span>Diving in…</span></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
